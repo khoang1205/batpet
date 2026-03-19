@@ -1,0 +1,74 @@
+### Build output
+bin/
+obj/
+out/
+publish/
+runtimes/
+
+### VS / Rider / IDE files
+.vs/
+*.vsidx
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vscode/
+.idea/
+
+### Logs / temp
+*.log
+*.temp
+*.tmp
+
+### NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+!**/packages/repositories.config
+
+### OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+### Crash dumps
+*.stackdump
+*.dmp
+
+### Cache
+*.cache
+*.db-shm
+*.db-wal
+
+### Backup files
+*.bak
+*.old
+
+### JSON config you may want to exclude if contains token
+appsettings.Development.json
+appsettings.local.json
+
+### Auto-generated
+*.generated.cs
+
+### Publish app archives
+*.zip
+*.7z
+*.rar
+
+### OpenCV temp
+*.xml
+*.json
+__pycache__/
+
+### Publish profiles
+*.pubxml
+*.pubxml.user
+
+### Test output
+TestResult*/
+TestResults/
+
+### Assets temp
+#Assets/Pet/
+#Assets/Template/
