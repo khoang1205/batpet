@@ -1,5 +1,6 @@
 ﻿using batpet.Auto;
 using batpet.Model;
+using LeoThap;
 using Microsoft.VisualBasic.Devices;
 using Microsoft.VisualBasic.Logging;
 using System.Diagnostics;
@@ -33,9 +34,79 @@ namespace batpet
         {
             _instance = this;
             InitializeComponent();
-            Load += (s, e) =>
+            Load += async (s, e) =>
             {
+                ToggleUI(false);
+                Append("⏳ Đang kiểm tra bản quyền...");
+                bool isValid = await CheckLicenseAsync();
 
+                if (!isValid)
+                {
+                    string myHwid = HWIDHelper.GetHWID();
+
+                    // Tự tạo một Form cảnh báo chuyên nghiệp
+                    Form alert = new Form()
+                    {
+                        Text = "Cảnh báo Bản Quyền",
+                        Size = new Size(420, 220),
+                        StartPosition = FormStartPosition.CenterScreen,
+                        FormBorderStyle = FormBorderStyle.FixedDialog,
+                        MaximizeBox = false,
+                        MinimizeBox = false,
+                        TopMost = true // Luôn nổi lên trên
+                    };
+
+                    Label lbl = new Label()
+                    {
+                        Text = "Máy của bạn chưa được cấp phép sử dụng Tool này.\n\nVui lòng copy mã bên dưới và gửi cho Admin để kích hoạt:",
+                        Location = new Point(20, 20),
+                        AutoSize = true,
+                        Font = new Font("Segoe UI", 9, FontStyle.Regular)
+                    };
+
+                    TextBox txtHwid = new TextBox()
+                    {
+                        Text = myHwid,
+                        Location = new Point(20, 80),
+                        Width = 360,
+                        ReadOnly = true, // Không cho sửa, chỉ cho copy
+                        Font = new Font("Consolas", 10, FontStyle.Bold)
+                    };
+
+                    Button btnCopy = new Button()
+                    {
+                        Text = "📋 Copy Mã Máy",
+                        Location = new Point(130, 120),
+                        Size = new Size(140, 35),
+                        Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                        Cursor = Cursors.Hand
+                    };
+
+                    // Sự kiện khi bấm nút Copy
+                    btnCopy.Click += (senderObj, args) =>
+                    {
+                        Clipboard.SetText(myHwid);
+                        MessageBox.Show("✅ Đã copy mã vào bộ nhớ tạm!\nBây giờ bạn có thể dán ",
+                                        "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    };
+
+                    alert.Controls.Add(lbl);
+                    alert.Controls.Add(txtHwid);
+                    alert.Controls.Add(btnCopy);
+
+                    // Hiện Form và dừng code tại đây cho đến khi user tắt Form
+                    alert.ShowDialog();
+
+                    // Đóng tool sau khi tắt hộp thoại
+                    Environment.Exit(0);
+                    return;
+                }
+
+                // Đã hợp lệ -> Mở tool
+                LoadWindows();
+                txtAssetsDir.Text = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
+                Append("✅ Tool đã sẵn sàng");
+                ToggleUI(true); // Mở khóa giao diện
                 LoadWindows();
                 txtAssetsDir.Text = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets");
                 LoadPetList();
@@ -434,7 +505,43 @@ namespace batpet
            
             _hookID = SetHook(_proc);
         }
+        private async Task<bool> CheckLicenseAsync()
+        {
+            string myHwid = HWIDHelper.GetHWID();
 
+            try
+            {
+                string licenseUrl = "https://raw.githubusercontent.com/khoang1205/batpet/main/keys.txt";
+
+                using (HttpClient client = new HttpClient())
+                {
+                    // Tải toàn bộ nội dung file text về
+                    string validHwidsText = await client.GetStringAsync(licenseUrl);
+
+                    // Tách nội dung thành từng dòng riêng biệt
+                    string[] lines = validHwidsText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    foreach (string line in lines)
+                    {
+                        // Cắt lấy phần mã HWID đứng trước dấu "|" và xóa khoảng trắng dư thừa
+                        string hwidInFile = line.Split('|')[0].Trim();
+
+                        // So sánh chính xác tuyệt đối 2 mã với nhau (bỏ qua viết hoa/thường)
+                        if (string.Equals(hwidInFile, myHwid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true; // Trùng khớp hoàn toàn -> Cho chạy!
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                Append("❌ Lỗi kết nối máy chủ bản quyền.");
+                return false;
+            }
+
+            return false;
+        }
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             UnhookWindowsHookEx(_hookID);
